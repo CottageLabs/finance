@@ -12,18 +12,19 @@ import os
 import re
 import psycopg2
 import sys
+import csv
 
 
 FREE_AGENT_TOKEN = os.environ['FREE_AGENT_TOKEN'] # store your freeagent token  in an environment variable
 BASE_URL = "https://api.freeagent.com/v2/"
 
-def get_filename(method,subquery=""):
+def get_filename(method,subquery="",extension=".json"):
     if not os.path.exists("data"):
         os.makedirs("data")
     if subquery:
-        return "data/{0}_{1}.json".format(method, re.split('\/',subquery)[-1])
+        return "data/{0}_{1}{2}".format(method, re.split('\/',subquery)[-1],extension)
     else:
-        return "data/{0}.json".format(method)
+        return "data/{0}{1}".format(method,extension)
 
     
 def save_data(filename,data):
@@ -72,17 +73,28 @@ def get_paged_data_and_load(cursor, method, subquery=""):
     get_paged_data(filename, method, subquery)
     load_table(filename, cursor, method)
 
-def get_unpaged_data(method, subquery=""):
+def get_category_data_and_load(cursor, method, subquery=""):
     filename = get_filename(method, subquery)
     if (os.path.exists(filename)):
         print "skipping download for " + method
-        return 0
     else:
         print "loading " + method + " data from the API"
         data = get_data(method)
         save_data(filename, data)
-        return len(data)
+    data_all_categories = load_data(filename)
+    for key in data_all_categories.keys():        
+        for row in data_all_categories[key]:
+            sql = "INSERT INTO " + method + "(" + ",".join(row.keys()) + ") VALUES(" + ','.join(['%s']*len(row.keys())) + ")"
+            cursor.execute(sql, row.values())
 
+def get_csv_and_load(cursor, method, keys):
+    filename = get_filename(method,"",".csv")
+    with open(filename,'rU') as csvfile:
+        reader = csv.reader(csvfile)
+        for row in reader:
+            sql = "INSERT INTO " + method + "(" + ",".join(keys) + ") VALUES(" + ','.join(['%s']*len(keys)) + ")"
+            cursor.execute(sql, row)
+            
     
 def load_table(filename, cursor, method):
     print "loading table: " + method
@@ -314,7 +326,14 @@ def recreate_tables(cursor):
           updated_at date,
           CONSTRAINT pk_users PRIMARY KEY (url)
         )""")
-   
+    
+    create_table(cursor, "server_costs",
+    """CREATE TABLE server_costs
+        (
+          project_name character varying(255) NOT NULL,
+          value numeric(10,2),
+          CONSTRAINT pk_server_costs PRIMARY KEY (project_name)
+        )""")
 
 
 def run():
@@ -328,21 +347,23 @@ def run():
         cursor = connection.cursor()
         
         recreate_tables(cursor)
-
-        get_unpaged_data('categories')
-
+        
+        get_category_data_and_load(cursor, 'categories')
+        
         get_paged_data_and_load(cursor, 'bank_accounts')
         bank_accounts = load_data(get_filename('bank_accounts'))
         for bank_account in bank_accounts:
             get_paged_data_and_load(cursor,'bank_transactions','bank_account=' + bank_account["url"])
             get_paged_data_and_load(cursor, 'bank_transaction_explanations','bank_account=' + bank_account["url"])
-
+        
         get_paged_data_and_load(cursor, 'bills')
         get_paged_data_and_load(cursor, 'contacts')
         get_paged_data_and_load(cursor, 'expenses')
         get_paged_data_and_load(cursor, 'invoices')
         get_paged_data_and_load(cursor, 'projects')
         get_paged_data_and_load(cursor, 'users')
+        
+        get_csv_and_load(cursor, "server_costs", ["project_name","value"])
     
         connection.commit()
         
