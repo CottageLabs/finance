@@ -9,6 +9,7 @@
 import json
 import urllib2
 import os
+import time
 import re
 import psycopg2
 import sys
@@ -17,16 +18,24 @@ import csv
 
 FREE_AGENT_TOKEN = os.environ['FREE_AGENT_TOKEN'] # store your freeagent token  in an environment variable
 BASE_URL = "https://api.freeagent.com/v2/"
+OPENBOOKS_DATA_PATH = "data/openbooks/"
+CSV_DATA_PATH = "data/csv/"
+REFRESH_INTERVAL = 24 * 60 * 60 # 1 day = 86,400 seconds
 
-def get_filename(method,subquery="",extension=".json"):
-    if not os.path.exists("data"):
-        os.makedirs("data")
+def get_openbooks_filename(method,subquery=""):
+    if not os.path.exists(OPENBOOKS_DATA_PATH):
+        os.makedirs(OPENBOOKS_DATA_PATH)
     if subquery:
-        return "data/{0}_{1}{2}".format(method, re.split('\/',subquery)[-1],extension)
+        return "{0}{1}_{2}{3}".format(OPENBOOKS_DATA_PATH, method, re.split('\/',subquery)[-1], ".json")
     else:
-        return "data/{0}{1}".format(method,extension)
+        return "{0}{1}{2}".format(OPENBOOKS_DATA_PATH, method, ".json")
 
-    
+def get_csv_filename(method):
+    if not os.path.exists(CSV_DATA_PATH):
+        os.makedirs(CSV_DATA_PATH)
+    else:
+        return "{0}{1}{2}".format(CSV_DATA_PATH,method,".csv")
+
 def save_data(filename,data):
     with open(filename, 'w') as outfile:
         json.dump(data, outfile)
@@ -54,7 +63,7 @@ def get_paged_data(filename, method, subquery=""):
     per_page=100
     data = []
 
-    if (os.path.exists(filename)):
+    if (os.path.exists(filename) and (time.time()-os.path.getmtime(filename) < REFRESH_INTERVAL)):
         print "skipping " + method
     else:
         print "loading " + method + " data from the API"
@@ -69,13 +78,13 @@ def get_paged_data(filename, method, subquery=""):
     return len(data)
 
 def get_paged_data_and_load(cursor, method, subquery=""):
-    filename = get_filename(method, subquery)
+    filename = get_openbooks_filename(method, subquery)
     get_paged_data(filename, method, subquery)
     load_table(filename, cursor, method)
 
 def get_category_data_and_load(cursor, method, subquery=""):
-    filename = get_filename(method, subquery)
-    if (os.path.exists(filename)):
+    filename = get_openbooks_filename(method, subquery)
+    if (os.path.exists(filename) and (time.time()-os.path.getmtime(filename) < REFRESH_INTERVAL)):
         print "skipping download for " + method
     else:
         print "loading " + method + " data from the API"
@@ -88,7 +97,8 @@ def get_category_data_and_load(cursor, method, subquery=""):
             cursor.execute(sql, row.values())
 
 def get_csv_and_load(cursor, method, keys):
-    filename = get_filename(method,"",".csv")
+    print "loading " + method
+    filename = get_csv_filename(method)
     with open(filename,'rU') as csvfile:
         reader = csv.reader(csvfile)
         for row in reader:
@@ -106,6 +116,8 @@ def load_table(filename, cursor, method):
             del row["user"] # we are ignoring users
         if "ni_number" in row:
             del row["ni_number"] # we are ignoring NI numbers
+        if "bank_transaction_explanations" in row:
+            del row["bank_transaction_explanations"] # we are ignoring bank_transaction_explanations
         sql = "INSERT INTO " + method + "(" + ",".join(row.keys()) + ") VALUES(" + ','.join(['%s']*len(row.keys())) + ")"
         cursor.execute(sql, row.values())
     
@@ -123,6 +135,7 @@ def recreate_tables(cursor):
           allowable_for_tax boolean,
           auto_sales_tax_rate character varying(255),
           description character varying(255),
+          group_description character varying(255),
           nominal_code character varying(255),
           tax_reporting_name character varying(255),
           CONSTRAINT pk_categories PRIMARY KEY (url)
@@ -133,9 +146,11 @@ def recreate_tables(cursor):
         (
           url character varying(255) NOT NULL,
           account_number character varying(255),
+          bank_code character varying(25),
           bank_name character varying(255),
           bic character varying(255),
           created_at date,
+          latest_activity_date date,
           currency character varying(255),
           current_balance numeric(10,2),
           iban character varying(255),
@@ -157,6 +172,7 @@ def recreate_tables(cursor):
           amount numeric(10,2),
           dated_on date,
           description character varying(255),
+          full_description character varying(255),
           is_manual boolean,
           unexplained_amount numeric(10,2),
           uploaded_at date,
@@ -231,6 +247,7 @@ def recreate_tables(cursor):
           town character varying(255),
           updated_at date,
           uses_contact_invoice_sequence boolean,
+          active_projects_count int,
           CONSTRAINT pk_contacts PRIMARY KEY (url)
         )""")
 
@@ -253,6 +270,7 @@ def recreate_tables(cursor):
           sales_tax_value numeric(10,2),
           updated_at date,
           "user" character varying(255),
+          rebill_factor numeric(10,2),
           CONSTRAINT pk_expenses PRIMARY KEY (url)
         )""")
     
@@ -286,6 +304,14 @@ def recreate_tables(cursor):
           total_value numeric(10,2),
           written_off_date date,
           updated_at date,
+          send_reminder_emails boolean,
+          send_thank_you_emails boolean,
+          send_new_invoice_emails boolean,
+          include_timeslips character varying(255),
+          recurring_invoice character varying(255),
+          billed_grouped_by_single_timeslip boolean,
+          bank_account character varying(255),
+          client_contact_name character varying(255),
           CONSTRAINT pk_invoices PRIMARY KEY (url)
         )""")
     
@@ -351,10 +377,10 @@ def run():
         get_category_data_and_load(cursor, 'categories')
         
         get_paged_data_and_load(cursor, 'bank_accounts')
-        bank_accounts = load_data(get_filename('bank_accounts'))
+        bank_accounts = load_data(get_openbooks_filename('bank_accounts'))
         for bank_account in bank_accounts:
             get_paged_data_and_load(cursor,'bank_transactions','bank_account=' + bank_account["url"])
-            get_paged_data_and_load(cursor, 'bank_transaction_explanations','bank_account=' + bank_account["url"])
+        #    get_paged_data_and_load(cursor, 'bank_transaction_explanations','bank_account=' + bank_account["url"])
         
         get_paged_data_and_load(cursor, 'bills')
         get_paged_data_and_load(cursor, 'contacts')
