@@ -21,6 +21,8 @@ BASE_URL = "https://api.freeagent.com/v2/"
 OPENBOOKS_DATA_PATH = "data/openbooks/"
 CSV_DATA_PATH = "data/csv/"
 REFRESH_INTERVAL = 24 * 60 * 60 # 1 day = 86,400 seconds
+EXCLUDED_FIELDS = ["attachment", "user", "ni_number", "bank_transaction_explanations"]
+
 
 def get_openbooks_filename(method,subquery=""):
     if not os.path.exists(OPENBOOKS_DATA_PATH):
@@ -64,7 +66,7 @@ def get_paged_data(filename, method, subquery=""):
     data = []
 
     if (os.path.exists(filename) and (time.time()-os.path.getmtime(filename) < REFRESH_INTERVAL)):
-        print "skipping " + method
+        print "skipping " + method + " data from the API"
     else:
         print "loading " + method + " data from the API"
         while True:
@@ -85,7 +87,7 @@ def get_paged_data_and_load(cursor, method, subquery=""):
 def get_category_data_and_load(cursor, method, subquery=""):
     filename = get_openbooks_filename(method, subquery)
     if (os.path.exists(filename) and (time.time()-os.path.getmtime(filename) < REFRESH_INTERVAL)):
-        print "skipping download for " + method
+        print "skipping " + method + " data from the API"
     else:
         print "loading " + method + " data from the API"
         data = get_data(method)
@@ -110,18 +112,15 @@ def load_table(filename, cursor, method):
     print "loading table: " + method
     data = load_data(filename)
     for row in data:
-        if "attachment" in row:
-            del row["attachment"] # we are ignoring attachments
-        if "user" in row:
-            del row["user"] # we are ignoring users
-        if "ni_number" in row:
-            del row["ni_number"] # we are ignoring NI numbers
-        if "bank_transaction_explanations" in row:
-            del row["bank_transaction_explanations"] # we are ignoring bank_transaction_explanations
+        exclude_fields_from_database(row)
         sql = "INSERT INTO " + method + "(" + ",".join(row.keys()) + ") VALUES(" + ','.join(['%s']*len(row.keys())) + ")"
         cursor.execute(sql, row.values())
-    
-        
+
+def exclude_fields_from_database(row):
+    for field in EXCLUDED_FIELDS:
+        if field in row:
+            del row[field]
+
 def create_table(cursor, tablename, sql):
     print "recreating table: " + tablename
     cursor.execute("DROP TABLE IF EXISTS " + tablename)
