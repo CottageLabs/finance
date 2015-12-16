@@ -62,3 +62,6 @@ sql/scripts.sql
 
 # PyCharm and other IntelliJ family IDEs
 .idea
+
+# Conventional name for octopus-based apps' local config
+local.cfg
