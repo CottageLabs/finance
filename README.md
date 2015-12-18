@@ -57,11 +57,13 @@ Create your local config
 
     touch local.cfg
 
-Then you can override any config values that you need to.
+Then you can override any config values that you need to. See Configuration section below for those.
 
 Then, start your app with
 
     python service/web.py
+
+**Note the application will try to connect to the database at this point, and will try to create the database if it does not exist.**
 
 If you want to specify your own root config file, you can use
 
@@ -73,6 +75,8 @@ You will need to have PostgreSQL running. You'll need to set:
 
     SQLALCHEMY_DATABASE_URI="postgresql+psycopg2://pg_username:pg_password@localhost/pg_database"
     SQLALCHEMY_TRACK_MODIFICATIONS=False
+
+Ideally your pg_username user will have the create database privilege (this is not granted by default when creating Postgres users). That way if the DB does not exist, the app will create it for you on first run, which in turn enables you to run all migrations immediately or load the latest schema directly into the DB.
 
 ## Application development
 
