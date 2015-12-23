@@ -1,0 +1,46 @@
+<div class="container">
+
+    <div class="content" id="topstrap">
+        <a href="/">Cottage Labs Finance</a>
+    </div>
+
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#main-navigation">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+            </div>
+
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="main-navigation">
+                <ul class="nav navbar-nav">
+                    <li{% if request.path == "/" %} class="active"{% endif %}><a href="{{url_for('index')}}">Home</a></li>
+                    <li><a href="/link">Link</a></li>
+                </ul>
+
+                {% if current_user and not current_user.is_anonymous() %}
+                <ul class="nav navbar-nav navbar-right">
+                    <li{% if request.path.startswith('/account') %} class="active"{% endif %}><a alt="View your account" title="View your account" href="{{ url_for('account.username', username=current_user.email) }}"><strong>{{current_user.email}}</strong></a></li>
+                    <li><a href="{{ url_for('account.index') }}">Users</a></li>
+                    <li><a href="{{ url_for('admin.index') }}">Admin</a></li>
+                    <li><a href="{{ url_for('account.logout') }}">Logout</a></li>
+                </ul>
+                {% endif %}
+            </div><!-- /.navbar-collapse -->
+        </div><!-- /.container-fluid -->
+    </nav>
+
+    <div class="content">
+        <div class="row">
+            <div class="col-md-12">
+                {% include "_flash.html" %}
+            </div>
+        </div>
+    </div>
+
+</div>
