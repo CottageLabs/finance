@@ -2,16 +2,17 @@ from service.db import db
 from datetime import datetime
 
 
-class BankAccount(db.Model):
-    __tablename__ = 'bank_accounts'
-
+class BankTransaction(db.Model):
+    __tablename__ = 'bank_transactions'
     url = db.Column(db.String(), nullable=False, primary_key=True)
-    first_name = db.Column(db.String())
-    last_name = db.Column(db.String())
-    email = db.Column(db.String())
-    role = db.Column(db.String())
-    permission_level = db.Column(db.Integer())
-    opening_mileage = db.Column(db.Numeric(precision=10, scale=2))
+    bank_account = db.Column(db.String())
+    amount = db.Column(db.Numeric(precision=10, scale=2))
+    dated_on = db.Column(db.Date())
+    description = db.Column(db.String())
+    full_description = db.Column(db.String())
+    is_manual = db.Column(db.Boolean())
+    unexplained_amount = db.Column(db.Numeric(precision=10, scale=2))
+    uploaded_at = db.Column(db.Date())
     created_at = db.Column(db.DateTime())
     updated_at = db.Column(db.DateTime())
 

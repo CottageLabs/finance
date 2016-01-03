@@ -22,7 +22,6 @@ def upgrade():
     sa.Column('bank_code', sa.VARCHAR(length=25), autoincrement=False, nullable=True),
     sa.Column('bank_name', sa.VARCHAR(length=255), autoincrement=False, nullable=True),
     sa.Column('bic', sa.VARCHAR(length=255), autoincrement=False, nullable=True),
-    sa.Column('created_at', sa.DATE(), autoincrement=False, nullable=True),
     sa.Column('latest_activity_date', sa.DATE(), autoincrement=False, nullable=True),
     sa.Column('currency', sa.VARCHAR(length=255), autoincrement=False, nullable=True),
     sa.Column('current_balance', sa.NUMERIC(precision=10, scale=2), autoincrement=False, nullable=True),
@@ -33,7 +32,8 @@ def upgrade():
     sa.Column('opening_balance', sa.NUMERIC(precision=10, scale=2), autoincrement=False, nullable=True),
     sa.Column('sort_code', sa.VARCHAR(length=255), autoincrement=False, nullable=True),
     sa.Column('type', sa.VARCHAR(length=255), autoincrement=False, nullable=True),
-    sa.Column('updated_at', sa.DATE(), autoincrement=False, nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('url', name=u'pk_bank_accounts')
     )
 
