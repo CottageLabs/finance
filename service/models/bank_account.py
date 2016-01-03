@@ -2,11 +2,10 @@ from service.db import db
 from datetime import datetime
 
 
-class User(db.Model):
-    __tablename__ = 'users'
+class BankAccount(db.Model):
+    __tablename__ = 'bank_accounts'
 
-    id = db.Column(db.Integer, primary_key=True)
-    url = db.Column(db.String(), nullable=False)
+    url = db.Column(db.String(), nullable=False, primary_key=True)
     first_name = db.Column(db.String())
     last_name = db.Column(db.String())
     email = db.Column(db.String())
@@ -23,4 +22,4 @@ class User(db.Model):
         self.updated_at = updated_at
 
     def __repr__(self):
-        return '<id {}>'.format(self.id)
+        return '<url {}>'.format(self.url)
