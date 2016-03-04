@@ -31,6 +31,12 @@ from service import models  # needed even if unused below, to let Alembic pick u
 def index():
     return render_template("index.html")
 
+@app.route("/projects")
+def projects():
+    #from service.models.project import Project
+    projects = ["project1", "project2", "project3"] #Project.new(url="foo", name="boo")]
+    return render_template("projects.html", projects=projects)
+
 # this allows us to override the standard static file handling with our own dynamic version
 @app.route("/static/<path:filename>")
 def static(filename):

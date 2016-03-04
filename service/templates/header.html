@@ -20,7 +20,7 @@
             <div class="collapse navbar-collapse" id="main-navigation">
                 <ul class="nav navbar-nav">
                     <li{% if request.path == "/" %} class="active"{% endif %}><a href="{{url_for('index')}}">Home</a></li>
-                    <li><a href="/link">Link</a></li>
+                    <li{% if request.path == "/projects" %} class="active"{% endif %}><a href="{{url_for('projects')}}">Projects</a></li>
                 </ul>
 
                 {% if current_user and not current_user.is_anonymous() %}
