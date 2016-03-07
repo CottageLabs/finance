@@ -2,4 +2,6 @@
 # like this ...
 # now you can do
 # from service.models import MyObject
-from service.models.users import User
+from service.models.bank_account import BankAccount
+from service.models.user import User
+from service.models.project import Project
