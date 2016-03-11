@@ -65,3 +65,6 @@ sql/scripts.sql
 
 # Conventional name for octopus-based apps' local config
 local.cfg
+config/openbooks_secret.json
+config/openbooks_secret_storage.json
+

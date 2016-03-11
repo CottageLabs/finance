@@ -14,6 +14,7 @@ setup(
         "Flask-Migrate==1.6.0",
         "sqlalchemy-utils==0.31.4",
         "Flask-OAuthlib==0.9.2",
+        "oauth2client==2.0.1",
         # for deployment
         "gunicorn",
         "newrelic",
