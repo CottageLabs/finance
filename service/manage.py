@@ -4,11 +4,14 @@ from flask.ext.migrate import Migrate, MigrateCommand
 from octopus.core import app
 from service.db import db
 from service import models
+from service.lib.sync import Sync
+
 
 migrate = Migrate(app, db)
 manager = Manager(app)
 
 manager.add_command('db', MigrateCommand)
+#manager.add_command('openbooks', OpenbooksCommand)
 
 # # TODO these need to be customised for our environment and can't run as they are
 # # the gist is present though. my_metadata is SQLAlchemy's analysis of our models.
@@ -27,6 +30,21 @@ manager.add_command('db', MigrateCommand)
 # from alembic import command
 # alembic_cfg = Config("migrations/alembic.ini")   # path modified to suit us
 # command.stamp(alembic_cfg, "head")
+
+@manager.command
+def synchronise(table):
+    """
+    Synchronises the specified table with OpenBooks
+    """
+    print "Synchronising table:", table
+
+    sync = Sync()
+    data = sync.get_data_paged(table)
+    print data
+
+
+
+
 
 if __name__ == '__main__':
     manager.run()
