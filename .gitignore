@@ -18,7 +18,8 @@ develop-eggs/
 dist/
 downloads/
 eggs/
-lib/
+# also ignores service/lib/ which we need and is probably unintended
+#lib/
 lib64/
 parts/
 sdist/
