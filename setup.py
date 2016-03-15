@@ -8,13 +8,14 @@ setup(
     install_requires = [
         "octopus==1.0.0",
         "esprit",
-        "Flask",
+        "Flask==0.10.1",
         "psycopg2==2.6.1",
         "Flask-SQLAlchemy==2.1",
         "Flask-Migrate==1.6.0",
         "sqlalchemy-utils==0.31.4",
         "Flask-OAuthlib==0.9.2",
         "oauth2client==2.0.1",
+        "httplib2==0.9.2",
         # for deployment
         "gunicorn",
         "newrelic",
