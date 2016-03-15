@@ -1,17 +1,17 @@
 from flask.ext.script import Manager
 from flask.ext.migrate import Migrate, MigrateCommand
 
-from octopus.core import app
+from octopus.core import app, initialise
 from service.db import db
 from service import models
 from service.lib.sync import Sync
 
+initialise()
 
 migrate = Migrate(app, db)
 manager = Manager(app)
 
 manager.add_command('db', MigrateCommand)
-#manager.add_command('openbooks', OpenbooksCommand)
 
 # # TODO these need to be customised for our environment and can't run as they are
 # # the gist is present though. my_metadata is SQLAlchemy's analysis of our models.
@@ -31,18 +31,34 @@ manager.add_command('db', MigrateCommand)
 # alembic_cfg = Config("migrations/alembic.ini")   # path modified to suit us
 # command.stamp(alembic_cfg, "head")
 
-@manager.command
-def synchronise(table):
+
+@manager.option('-t', '--table', help='Table name to sync with OpenBooks. Syncs all tables if not specified')
+def sync(table=''):
     """
-    Synchronises the specified table with OpenBooks
+    Synchronises all DB tables with OpenBooks, or alternatively just 1
+    table.
+
+    :param table: optionally specify the name of the table to sync.
     """
-    print "Synchronising table:", table
+    if table:
+        app.logger.info("Synchronising table: %s" % table)
+    else:
+        app.logger.info("Synchronising all tables.")
 
-    sync = Sync()
-    data = sync.get_data_paged(table)
-    print data
+    s = Sync()
+    if len(db.metadata.tables.keys()) == 0:
+        app.logger.warn('No tables detected by SQLAlchemy! Can\'t sync. Stopping.')
+        return
 
+    data = {}
+    if table:
+        data[table] = s.get_data_paged(table)
+    else:
+        for table_name in db.metadata.tables.keys():
+            data[table_name] = s.get_data_paged(table_name)
 
+    import json
+    print json.dumps(data, indent=2)
 
 
 
