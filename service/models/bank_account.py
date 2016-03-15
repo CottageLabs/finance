@@ -17,7 +17,7 @@ class BankAccount(db.Model):
 
     def __init__(self, created_at=datetime.now(), updated_at=datetime.now(), **kwargs):
         """Mostly rely on default declarative SQLAlchemy constructor. Additionally set the timestamps on object creation."""
-        super(User, self).__init__(**kwargs)  # use the default declarative constructor
+        super(BankAccount, self).__init__(**kwargs)  # use the default declarative constructor
         self.created_at = created_at
         self.updated_at = updated_at
 
