@@ -51,11 +51,12 @@ def sync(table=''):
         return
 
     data = {}
+
     if table:
-        data[table] = s.get_data_paged(table)
+        data[table] = s.get_one_table(table)
     else:
         for table_name in db.metadata.tables.keys():
-            data[table_name] = s.get_data_paged(table_name)
+            data[table_name] = s.get_one_table(table_name)
 
     import json
     print json.dumps(data, indent=2)
