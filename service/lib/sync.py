@@ -12,6 +12,7 @@ class Sync(object):
     STORAGE_SECRET_FILE = 'config/openbooks_secret_storage.json'
     BASE_URL = "https://api.freeagent.com/v2/"
     JSON_HEADERS = {'Accept': 'application/json', 'Content-Type': 'application/json; charset=UTF-8'}
+    DATA_REQUIRING_BANK_ACC = ['bank_transactions', 'bank_transaction_explanations']
 
     def __init__(self):
         store = file.Storage(self.STORAGE_SECRET_FILE)
@@ -74,8 +75,8 @@ class Sync(object):
         return data
 
     def get_one_table(self, table_name):
-        if table_name == 'bank_transactions':
-            accounts = self.get_one_table('bank_accounts')
+        if table_name in self.DATA_REQUIRING_BANK_ACC:
+            accounts = self.get_one_table("bank_accounts")
             primary_account = self.get_primary_bank_acc(accounts)
             return self.get_data_paged(table_name, subquery='bank_account=' + primary_account["url"])
 
