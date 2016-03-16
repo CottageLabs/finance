@@ -2,6 +2,7 @@
 
 import httplib2
 import json
+import sqlalchemy_utils
 from oauth2client import file, client, tools
 from octopus.core import app, initialise
 from service.db import db
@@ -29,14 +30,7 @@ class Sync(object):
 
     @staticmethod
     def sync_prep():
-        # The next 2 lines initialise the app and SQLAlchemy.
-        # The initialise function is always supposed to be idempotent
-        # in octopus apps, so we can call it here even if it was
-        # called before.
-        # The models are not used, but the import initialises them
-        # for SQLAlchemy, so we can iterate over our list of tables.
         initialise()
-        from service import models
 
     @classmethod
     def sync_fetch(cls, table=''):
@@ -69,7 +63,15 @@ class Sync(object):
         else:
             app.logger.info("Writing data to DB for all tables.")
 
-        s = cls()
+        for obj in data:
+            # look up sqlalchemy Table obj by the table name we have,
+            # then look up the model class corresponding to that table
+            mclass = sqlalchemy_utils.get_class_by_table(db.Model, db.metadata.tables[table])
+
+            modeli = mclass(**obj)
+            db.session.add(modeli)
+
+        db.session.commit()
 
     def get_data(self, method, querystring=""):
         app.logger.debug("Requesting {0}{1}{2} with headers:\n{3}"
