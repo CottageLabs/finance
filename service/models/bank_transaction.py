@@ -5,7 +5,7 @@ from datetime import datetime
 class BankTransaction(db.Model):
     __tablename__ = 'bank_transactions'
     url = db.Column(db.String(), nullable=False, primary_key=True)
-    bank_account = db.Column(db.String())
+    bank_account = db.Column(db.String(), nullable=False)
     amount = db.Column(db.Numeric(precision=10, scale=2))
     dated_on = db.Column(db.Date())
     description = db.Column(db.String())

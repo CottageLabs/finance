@@ -5,8 +5,8 @@ from datetime import datetime
 class BankTransactionExplanation(db.Model):
     __tablename__ = 'bank_transaction_explanations'
     url = db.Column(db.String(), nullable=False, primary_key=True)
-    bank_transaction = db.Column(db.String())
-    bank_account = db.Column(db.String())
+    bank_transaction = db.Column(db.String(), nullable=False)
+    bank_account = db.Column(db.String(), nullable=False)
     category = db.Column(db.String())
     dated_on = db.Column(db.Date())
     description = db.Column(db.String())

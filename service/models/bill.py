@@ -5,7 +5,7 @@ from datetime import datetime
 class Bill(db.Model):
     __tablename__ = 'bills'
     url = db.Column(db.String(), nullable=False, primary_key=True)
-    category = db.Column(db.String())
+    category = db.Column(db.String(), nullable=False)
     project = db.Column(db.String())
     comments = db.Column(db.String())
     contact = db.Column(db.String())
