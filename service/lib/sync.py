@@ -6,6 +6,7 @@ import sqlalchemy_utils
 from oauth2client import file, client, tools
 from octopus.core import app, initialise
 from service.db import db
+from service.lib import util
 
 class Sync(object):
 
@@ -66,7 +67,7 @@ class Sync(object):
         for obj in data:
             # look up sqlalchemy Table obj by the table name we have,
             # then look up the model class corresponding to that table
-            mclass = sqlalchemy_utils.get_class_by_table(db.Model, db.metadata.tables[table])
+            mclass = util.get_model_class_by_tablename(table)
 
             modeli = mclass(**obj)
             db.session.add(modeli)
