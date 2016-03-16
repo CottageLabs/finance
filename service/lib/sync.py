@@ -68,6 +68,9 @@ class Sync(object):
                 return []
 
             batch = raw[method]
+            if method == 'users':
+                for user in batch:
+                    user.pop('ni_number', '')  # throw away this private info
 
             if len(batch) > 0:
                 data.extend(batch)
