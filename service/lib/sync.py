@@ -53,17 +53,19 @@ class Sync(object):
             raw = self.get_data_batch(method, subquery, page, per_page)
             if u'errors' in raw:
                 app.logger.error("FreeAgent API returned errors:\n" + json.dumps(raw[u'errors']))
-                break
+                return []
 
             if method not in raw:
-                app.logger.warn(
+                app.logger.error(
                     'Assumption made about FreeAgent API that it has an '
-                    'envelope wrapping around all results with '
-                    '{<method_name>: [<results>]} is not holding. Please '
+                    'envelope wrapping around all results (except '
+                    'categories) with '
+                    '{{<method_name>: [<results>]}} is not holding. Please '
                     'double-check documentation for getting {0} data and '
-                    'fix code. Skipping {0}. Was on page {1}.'
-                    .format(method, page))
-                break
+                    "fix code. Skipping {0}. Was on page {1}. "
+                    "Response dump:\n\n{2}\n\nAn error occurred! "
+                    .format(method, page, json.dumps(raw, indent=2)))
+                return []
 
             batch = raw[method]
 
