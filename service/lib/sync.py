@@ -3,7 +3,8 @@
 import httplib2
 import json
 from oauth2client import file, client, tools
-from octopus.core import app
+from octopus.core import app, initialise
+from service.db import db
 
 class Sync(object):
 
@@ -25,6 +26,50 @@ class Sync(object):
         # apply credentials to http instance
         self.http = httplib2.Http()
         self.http = credentials.authorize(self.http)
+
+    @staticmethod
+    def sync_prep():
+        # The next 2 lines initialise the app and SQLAlchemy.
+        # The initialise function is always supposed to be idempotent
+        # in octopus apps, so we can call it here even if it was
+        # called before.
+        # The models are not used, but the import initialises them
+        # for SQLAlchemy, so we can iterate over our list of tables.
+        initialise()
+        from service import models
+
+    @classmethod
+    def sync_fetch(cls, table=''):
+        if table:
+            app.logger.info("Fetching data from API for table: %s" % table)
+        else:
+            app.logger.info("Fetching data from API for all tables.")
+
+        s = cls()
+        data = {}
+
+        if table:
+            data[table] = s.get_one_table(table)
+        else:
+            cls.sync_prep()
+            if len(db.metadata.tables.keys()) == 0:
+                app.logger.critical('No tables detected by SQLAlchemy! '
+                                    'Can\'t fetch. Stopping.')
+                return {}
+
+            for table_name in db.metadata.tables.keys():
+                data[table_name] = s.get_one_table(table_name)
+
+        return data
+
+    @classmethod
+    def sync_write_table(cls, table, data):
+        if table:
+            app.logger.info("Writing data to DB for table: %s" % table)
+        else:
+            app.logger.info("Writing data to DB for all tables.")
+
+        s = cls()
 
     def get_data(self, method, querystring=""):
         app.logger.debug("Requesting {0}{1}{2} with headers:\n{3}"

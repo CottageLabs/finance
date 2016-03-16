@@ -40,26 +40,9 @@ def sync(table=''):
 
     :param table: optionally specify the name of the table to sync.
     """
-    if table:
-        app.logger.info("Synchronising table: %s" % table)
-    else:
-        app.logger.info("Synchronising all tables.")
+    Sync.sync_fetch(table)
 
-    s = Sync()
-    if len(db.metadata.tables.keys()) == 0:
-        app.logger.warn('No tables detected by SQLAlchemy! Can\'t sync. Stopping.')
-        return
 
-    data = {}
-
-    if table:
-        data[table] = s.get_one_table(table)
-    else:
-        for table_name in db.metadata.tables.keys():
-            data[table_name] = s.get_one_table(table_name)
-
-    import json
-    print json.dumps(data, indent=2)
 
 
 
