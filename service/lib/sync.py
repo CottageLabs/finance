@@ -82,6 +82,17 @@ class Sync(object):
             primary_account = self.get_primary_bank_acc(accounts)
             return self.get_data_paged(table_name, subquery='bank_account=' + primary_account["url"])
 
+        if table_name == 'categories':
+            # Paging doesn't work on the categories endpoint.
+            # Specifically, it keeps returning the same data for
+            # pages 1,2,3 etc. So we don't add paging info to request.
+            raw = self.get_data(table_name)
+            categories = []
+            for cat_type in raw.keys():
+                # flatten out the categories to 1 list, not several
+                categories.extend(raw[cat_type])
+            return categories
+
         return self.get_data_paged(table_name)
 
     @staticmethod
