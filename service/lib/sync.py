@@ -55,10 +55,13 @@ class Sync(object):
                 break
 
             if method not in raw:
-                app.logger.warn('Assumption made about FreeAgent API is not holding, please double'
-                                '-check documentation for getting {0} data and fix code. Skipping {0}. '
-                                'Was on page {1}.'
-                                .format(method, page))
+                app.logger.warn(
+                    'Assumption made about FreeAgent API that it has an '
+                    'envelope wrapping around all results with '
+                    '{<method_name>: [<results>]} is not holding. Please '
+                    'double-check documentation for getting {0} data and '
+                    'fix code. Skipping {0}. Was on page {1}.'
+                    .format(method, page))
                 break
 
             batch = raw[method]
