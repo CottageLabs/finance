@@ -32,15 +32,6 @@ manager.add_command('db', MigrateCommand)
 # alembic_cfg = Config("migrations/alembic.ini")   # path modified to suit us
 # command.stamp(alembic_cfg, "head")
 
-def load(filename):
-    with open(filename, 'rb') as f:
-        content = f.read()
-    return content
-
-def save_overwrite(filename, content):
-    with open(filename, 'wb') as o:
-        o.write(content)
-
 @manager.option(
     '-t', '--table',
     help='Table name to sync with OpenBooks. Syncs all tables if not specified.')
@@ -68,7 +59,7 @@ def refresh_local_examples(table=''):
     for key, value in data.iteritems():
         # note we're also unpacking the data here, so we get lists
         # directly in the example files rather than e.g. {'users': [...]}
-        save_overwrite(EXAMPLES_FN_TEMPL.format(key), json.dumps(value, indent=2))
+        util.save_overwrite(EXAMPLES_FN_TEMPL.format(key), json.dumps(value, indent=2))
 
 @manager.option(
     '-t', '--table',
@@ -97,7 +88,7 @@ def check_models_in_sync_with_fa_api(table='', use_cache=False):
     for tablename in checks:
         cache_name = EXAMPLES_FN_TEMPL.format(tablename)
         try:
-            api_sample = json.loads(load(cache_name))
+            api_sample = json.loads(util.load(cache_name))
         except IOError as e:
             raise IOError(
                 'File {0} does not exist. Please run this command without '
