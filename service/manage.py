@@ -32,18 +32,41 @@ manager.add_command('db', MigrateCommand)
 # alembic_cfg = Config("migrations/alembic.ini")   # path modified to suit us
 # command.stamp(alembic_cfg, "head")
 
+EXAMPLES_FN_TEMPL = '{0}_example.json'
+
 @manager.option(
     '-t', '--table',
     help='Table name to sync with OpenBooks. Syncs all tables if not specified.')
-def sync(table=''):
+@manager.option(
+    '-c', '--use-cache',
+    dest='use_cache', default=False, action="store_true",
+    help='Use the data currently available in JSON files at the root of '
+         'the repo, do not connect to OpenBooks to perform sync.')
+def sync(table='', use_cache=False):
     """
     Synchronises all DB tables with OpenBooks, or alternatively just 1
-    table.
+    table. Will drop/recreate table(s)!
     """
-    Sync.sync_fetch(table)
+
+    if table:
+        tables = [table]
+    else:
+        tables = db.metadata.tables.keys()
+
+    if not use_cache:
+        data = Sync.sync_fetch(table)  # will take care of "1 vs all" table
+    else:
+        data = {}
+        for tname in tables:
+            data[tname] = json.loads(util.load(EXAMPLES_FN_TEMPL.format(tname)))
+
+    for tname in tables:
+        tobj = util.get_tableobj_by_name(tname)
+        tobj.drop(bind=db.engine)
+        tobj.create(bind=db.engine)
+        Sync.sync_write_table(tname, data[tname])
 
 
-EXAMPLES_FN_TEMPL = '{0}_example.json'
 @manager.option(
     '-t', '--table',
     help='Fetch data from OpenBooks into <table name>.json in the root '
@@ -61,6 +84,7 @@ def refresh_local_examples(table=''):
         # directly in the example files rather than e.g. {'users': [...]}
         util.save_overwrite(EXAMPLES_FN_TEMPL.format(key), json.dumps(value, indent=2))
 
+
 @manager.option(
     '-t', '--table',
     help='Fetch data sample and check for one specific model corresponding '
@@ -68,8 +92,8 @@ def refresh_local_examples(table=''):
 @manager.option(
     '-c', '--use-cache',
     dest='use_cache', default=False, action="store_true",
-    help='Use the data currently available in <table name>.json files at '
-         'the root of the repo, do not connect to OpenBooks to refresh them.')
+    help='Use the data currently available in JSON files at the root of '
+         'the repo, do not connect to OpenBooks to refresh them.')
 def check_models_in_sync_with_fa_api(table='', use_cache=False):
     """
     Fetch data from OpenBooks about a specific table or all tables.
