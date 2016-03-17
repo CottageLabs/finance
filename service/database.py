@@ -1,6 +1,5 @@
 from flask.ext.sqlalchemy import SQLAlchemy
 from octopus.core import app
-from copy import deepcopy
 
 db = SQLAlchemy(app)
 from service import models  # initialise SQLAlchemy mappings with our models
