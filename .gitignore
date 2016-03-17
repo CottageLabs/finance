@@ -69,3 +69,4 @@ local.cfg
 config/openbooks_secret.json
 config/openbooks_secret_storage.json
 
+sql/
