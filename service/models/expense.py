@@ -1,4 +1,4 @@
-from service.db import db
+from service.database import db
 from datetime import datetime
 
 
@@ -24,7 +24,7 @@ class Expense(db.Model):
 
     def __init__(self, created_at=datetime.now(), updated_at=datetime.now(), **kwargs):
         """Mostly rely on default declarative SQLAlchemy constructor. Additionally set the timestamps on object creation."""
-        super(User, self).__init__(**kwargs)  # use the default declarative constructor
+        super(Expense, self).__init__(**kwargs)  # use the default declarative constructor
         self.created_at = created_at
         self.updated_at = updated_at
 

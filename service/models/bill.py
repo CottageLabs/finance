@@ -1,11 +1,11 @@
-from service.db import db
+from service.database import db
 from datetime import datetime
 
 
 class Bill(db.Model):
     __tablename__ = 'bills'
     url = db.Column(db.String(), nullable=False, primary_key=True)
-    category = db.Column(db.String())
+    category = db.Column(db.String(), nullable=False)
     project = db.Column(db.String())
     comments = db.Column(db.String())
     contact = db.Column(db.String())
@@ -23,7 +23,7 @@ class Bill(db.Model):
 
     def __init__(self, created_at=datetime.now(), updated_at=datetime.now(), **kwargs):
         """Mostly rely on default declarative SQLAlchemy constructor. Additionally set the timestamps on object creation."""
-        super(User, self).__init__(**kwargs)  # use the default declarative constructor
+        super(Bill, self).__init__(**kwargs)  # use the default declarative constructor
         self.created_at = created_at
         self.updated_at = updated_at
 

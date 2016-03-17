@@ -121,3 +121,7 @@ Please note that Alembic cannot detect all changes you make to models, though it
 ### Loading the current schema without rerunning all migrations
 
     python service/manage.py db head  # eventually ... this little piece won't work yet and is under development at the moment
+
+## Todo list
+
+- [ ] bank_transaction_explanations has new fields in the FreeAgent API, like is_money_in and is_money_out which could be useful

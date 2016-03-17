@@ -1,5 +1,3 @@
-from flask_alembic import Alembic
-
 from octopus.core import app
 
 def initialise():
@@ -13,7 +11,7 @@ def initialise():
     # Something like:
     # SQLALCHEMY_DATABASE_URI="postgresql+psycopg2://user:pass@localhost/database_name"
 
-    from service.db import db
+    from service.database import db
     from sqlalchemy_utils import database_exists, create_database
 
     if not database_exists(db.engine.url):
