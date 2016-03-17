@@ -1,4 +1,4 @@
-from service.db import db
+from service.database import db
 from datetime import datetime
 
 

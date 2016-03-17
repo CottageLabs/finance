@@ -12,3 +12,4 @@ from service.models.expense import Expense
 from service.models.invoice import Invoice
 from service.models.user import User
 from service.models.project import Project
+from service.models.server_cost import ServerCost

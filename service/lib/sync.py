@@ -5,7 +5,7 @@ import json
 import sqlalchemy_utils
 from oauth2client import file, client, tools
 from octopus.core import app, initialise
-from service.db import db
+from service.database import db, FA_API_TABLES
 from service.lib import util
 
 class Sync(object):
@@ -47,12 +47,12 @@ class Sync(object):
             data[table] = s.get_one_table(table)
         else:
             cls.sync_prep()
-            if len(db.metadata.tables.keys()) == 0:
+            if len(FA_API_TABLES.keys()) == 0:
                 app.logger.critical('No tables detected by SQLAlchemy! '
                                     'Can\'t fetch. Stopping.')
                 return {}
 
-            for table_name in db.metadata.tables.keys():
+            for table_name in FA_API_TABLES.keys():
                 data[table_name] = s.get_one_table(table_name)
 
         return data

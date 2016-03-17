@@ -4,7 +4,7 @@ from flask.ext.migrate import Migrate, MigrateCommand
 import sqlalchemy
 
 from octopus.core import app, initialise
-from service.db import db
+from service.database import db, FA_API_TABLES
 from service.lib import Sync, util
 
 initialise()
@@ -32,7 +32,7 @@ manager.add_command('db', MigrateCommand)
 # alembic_cfg = Config("migrations/alembic.ini")   # path modified to suit us
 # command.stamp(alembic_cfg, "head")
 
-EXAMPLES_FN_TEMPL = '{0}_example.json'
+EXAMPLES_FN_TEMPL = 'cache/{0}_example.json'
 
 @manager.option(
     '-t', '--table',
@@ -51,7 +51,7 @@ def sync(table='', use_cache=False):
     if table:
         tables = [table]
     else:
-        tables = db.metadata.tables.keys()
+        tables = FA_API_TABLES.keys()
 
     if not use_cache:
         data = Sync.sync_fetch(table)  # will take care of "1 vs all" table
@@ -107,7 +107,7 @@ def check_models_in_sync_with_fa_api(table='', use_cache=False):
     if table:
         checks = [table]
     else:
-        checks = db.metadata.tables.keys()
+        checks = FA_API_TABLES.keys()
 
     for tablename in checks:
         cache_name = EXAMPLES_FN_TEMPL.format(tablename)
