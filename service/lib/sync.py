@@ -2,7 +2,8 @@
 
 import httplib2
 import json
-import sqlalchemy_utils
+import sqlalchemy
+from copy import deepcopy
 from oauth2client import file, client, tools
 from octopus.core import app, initialise
 from service.database import db, FA_API_TABLES
@@ -156,3 +157,66 @@ class Sync(object):
             raise ValueError('No bank account is marked as primary in '
                              'FreeAgent API. Please double-check and fix.')
         return account
+
+
+class CompareAPI2Models(object):
+
+    @staticmethod
+    def trim_api_response_to_model(tablename, api_data):
+        trim_api_data = deepcopy(api_data)
+
+        api_fields = set()
+        for obj in trim_api_data:
+            api_fields |= set(obj.keys())
+
+        mclass = util.get_model_class_by_tablename(tablename)
+
+        # get a list of database fields present in the model
+        model_fields = []
+        for attr in dir(mclass):
+            is_db_field = isinstance(getattr(mclass, attr), sqlalchemy.orm.attributes.InstrumentedAttribute)
+            if is_db_field:
+                model_fields.append(attr)
+
+        # check for fields the API has that we do not
+        for field in api_fields:
+            if not hasattr(mclass, field):
+                # trim off fields that models do not have
+                for obj in trim_api_data:
+                    obj.pop(field, None)
+
+        return trim_api_data
+
+    @staticmethod
+    def cmp_api2model(tablename, api_sample):
+        detected_differences = False
+
+        api_fields = set()
+        for obj in api_sample:
+            api_fields |= set(obj.keys())
+
+        mclass = util.get_model_class_by_tablename(tablename)
+
+        # get a list of database fields present in the model
+        model_fields = []
+        for attr in dir(mclass):
+            is_db_field = isinstance(getattr(mclass, attr), sqlalchemy.orm.attributes.InstrumentedAttribute)
+            if is_db_field:
+                model_fields.append(attr)
+
+        # check for fields the API has that we do not
+        for field in api_fields:
+            if not hasattr(mclass, field):
+                app.logger.warn('{0} does not have field {1} present in API.'
+                                .format(mclass.__name__, field))
+                detected_differences = True
+
+        # check for fields our models have, but the API does not
+        for mfield in model_fields:
+            if mfield not in api_fields:
+                app.logger.warn('{0} has an attribute {1} NOT present in API.'
+                                .format(mclass.__name__, mfield))
+                detected_differences = True
+
+        if not detected_differences:
+            app.logger.info('No differences detected between {0} and API'.format(tablename))

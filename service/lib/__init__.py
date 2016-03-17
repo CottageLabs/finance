@@ -1,1 +1,1 @@
-from service.lib.sync import Sync
+from service.lib.sync import Sync, CompareAPI2Models

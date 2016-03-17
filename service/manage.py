@@ -1,11 +1,9 @@
-import json
 from flask.ext.script import Manager
 from flask.ext.migrate import Migrate, MigrateCommand
-import sqlalchemy
 
 from octopus.core import app, initialise
 from service.database import db, FA_API_TABLES
-from service.lib import Sync, util
+from service.lib import Sync, CompareAPI2Models, util
 
 initialise()
 
@@ -32,7 +30,7 @@ manager.add_command('db', MigrateCommand)
 # alembic_cfg = Config("migrations/alembic.ini")   # path modified to suit us
 # command.stamp(alembic_cfg, "head")
 
-EXAMPLES_FN_TEMPL = 'cache/{0}_example.json'
+
 
 @manager.option(
     '-t', '--table',
@@ -40,9 +38,14 @@ EXAMPLES_FN_TEMPL = 'cache/{0}_example.json'
 @manager.option(
     '-c', '--use-cache',
     dest='use_cache', default=False, action="store_true",
-    help='Use the data currently available in JSON files at the root of '
-         'the repo, do not connect to OpenBooks to perform sync.')
-def sync(table='', use_cache=False):
+    help='Use the data currently available in the cache, '
+         'do not connect to OpenBooks to perform sync.')
+@manager.option(
+    '-r', '--refresh-cache',
+    dest='refresh_cache', default=True, action="store_true",
+    help='Write the fresh data from OpenBooks (if -c was not used) '
+         'to the cache while performing the sync.')
+def sync(table='', use_cache=False, refresh_cache=True):
     """
     Synchronises all DB tables with OpenBooks, or alternatively just 1
     table. Will drop/recreate table(s)!
@@ -55,12 +58,18 @@ def sync(table='', use_cache=False):
 
     if not use_cache:
         data = Sync.sync_fetch(table)  # will take care of "1 vs all" table
+        # update the cache with the fresh data
+        for tname, tdata in data.iteritems():
+            util.write_cache(tname, tdata)
     else:
         data = {}
         for tname in tables:
-            data[tname] = json.loads(util.load(EXAMPLES_FN_TEMPL.format(tname)))
+            data[tname] = util.read_cache(tname)
 
+    # remove extra info from API responses - the models only accept
+    # what they've got declared as fields, which is sensible.
     for tname in tables:
+        data[tname] = CompareAPI2Models.trim_api_response_to_model(tname, data[tname])
         tobj = util.get_tableobj_by_name(tname)
         tobj.drop(bind=db.engine)
         tobj.create(bind=db.engine)
@@ -69,9 +78,34 @@ def sync(table='', use_cache=False):
 
 @manager.option(
     '-t', '--table',
-    help='Fetch data from OpenBooks into <table name>.json in the root '
-         'of the local repo. Fetches samples for all tables if not specified.')
-def refresh_local_examples(table=''):
+    help='Table name verify. Verifies all imported tables if not specified.')
+def verify_sync_against_cache(table=''):
+    """
+    Verify that data in tables sourced from OpenBooks has been imported
+    correctly and successfully. Only verifies data in the database
+    against the local cache, so it is most useful (and mainly intended
+    to be used) immediately after using the sync command.
+
+    For now this just does a count of all records in a table vs. the
+    same records in the cache.
+    """
+    if table:
+        tables = [table]
+    else:
+        tables = FA_API_TABLES.keys()
+
+    data = {}
+    for tname in tables:
+        data[tname] = util.read_cache(tname)
+        assert len(data[tname]) == util.get_model_class_by_tablename(tname).query.count()
+        app.logger.info('Data in table {0} matches cache.'.format(tname))
+
+
+@manager.option(
+    '-t', '--table',
+    help='Fetch data from OpenBooks into the cache directory. '
+         'Fetches data for all tables if not specified.')
+def refresh_cache(table=''):
     """
     Fetch data from OpenBooks about a specific table or all tables.
     Written (with overwrite!) into <table name>.json in the root of
@@ -79,10 +113,8 @@ def refresh_local_examples(table=''):
     check_models_in_sync_with_fa_api task.
     """
     data = Sync.sync_fetch(table)
-    for key, value in data.iteritems():
-        # note we're also unpacking the data here, so we get lists
-        # directly in the example files rather than e.g. {'users': [...]}
-        util.save_overwrite(EXAMPLES_FN_TEMPL.format(key), json.dumps(value, indent=2))
+    for tname, tdata in data.iteritems():
+        util.write_cache(tname, tdata)
 
 
 @manager.option(
@@ -92,8 +124,8 @@ def refresh_local_examples(table=''):
 @manager.option(
     '-c', '--use-cache',
     dest='use_cache', default=False, action="store_true",
-    help='Use the data currently available in JSON files at the root of '
-         'the repo, do not connect to OpenBooks to refresh them.')
+    help='Use the data currently available in the cache, '
+         'do not connect to OpenBooks to refresh them.')
 def check_models_in_sync_with_fa_api(table='', use_cache=False):
     """
     Fetch data from OpenBooks about a specific table or all tables.
@@ -102,7 +134,7 @@ def check_models_in_sync_with_fa_api(table='', use_cache=False):
     still exist in the OpenBooks API responses.
     """
     if not use_cache:
-        refresh_local_examples(table)
+        refresh_cache(table)
 
     if table:
         checks = [table]
@@ -110,53 +142,10 @@ def check_models_in_sync_with_fa_api(table='', use_cache=False):
         checks = FA_API_TABLES.keys()
 
     for tablename in checks:
-        cache_name = EXAMPLES_FN_TEMPL.format(tablename)
-        try:
-            api_sample = json.loads(util.load(cache_name))
-        except IOError as e:
-            raise IOError(
-                'File {0} does not exist. Please run this command without '
-                'the -c flag to connect to the API and generate {0}.'
-                .format(cache_name)
-            )
-        except ValueError as e:
-            raise ValueError(
-                'Contents of {0} are invalid JSON. Please run this '
-                'command without the -c flag to connect to the API and '
-                'regenerate {0}'.format(cache_name)
-            )
+        api_sample = util.read_cache(tablename)
 
-        detected_differences = False
+        CompareAPI2Models.cmp_api2model(tablename, api_sample)
 
-        api_fields = set()
-        for obj in api_sample:
-            api_fields |= set(obj.keys())
-
-        mclass = util.get_model_class_by_tablename(tablename)
-
-        # get a list of database fields present in the model
-        model_fields = []
-        for attr in dir(mclass):
-            is_db_field = isinstance(getattr(mclass, attr), sqlalchemy.orm.attributes.InstrumentedAttribute)
-            if is_db_field:
-                model_fields.append(attr)
-
-        # check for fields the API has that we do not
-        for field in api_fields:
-            if not hasattr(mclass, field):
-                app.logger.warn('{0} does not have field {1} present in API.'
-                                .format(mclass.__name__, field))
-                detected_differences = True
-
-        # check for fields our models have, but the API does not
-        for mfield in model_fields:
-            if mfield not in api_fields:
-                app.logger.warn('{0} has an attribute {1} NOT present in API.'
-                                .format(mclass.__name__, mfield))
-                detected_differences = True
-
-        if not detected_differences:
-            app.logger.info('No differences detected between {0} and API'.format(tablename))
 
 if __name__ == '__main__':
     manager.run()
