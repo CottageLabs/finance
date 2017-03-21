@@ -31,6 +31,13 @@ manager.add_command('db', MigrateCommand)
 # command.stamp(alembic_cfg, "head")
 
 
+@manager.command
+def refresh_oauth():
+    """
+    Force refresh OAuth credentials.
+    """
+    Sync.refresh_oauth_creds()
+
 
 @manager.option(
     '-t', '--table',

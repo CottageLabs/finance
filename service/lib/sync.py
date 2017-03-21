@@ -19,16 +19,29 @@ class Sync(object):
     DATA_REQUIRING_BANK_ACC = ['bank_transactions', 'bank_transaction_explanations']
 
     def __init__(self):
-        store = file.Storage(self.STORAGE_SECRET_FILE)
-        credentials = store.get()
+        credentials, store = self.get_oauth_creds()
 
         if not credentials or credentials.invalid:
-            flow = client.flow_from_clientsecrets(self.CLIENT_SECRET_FILE, self.SCOPES)
-            credentials = tools.run_flow(flow, store)
+            self.refresh_oauth_creds()
 
         # apply credentials to http instance
         self.http = httplib2.Http()
         self.http = credentials.authorize(self.http)
+
+    @classmethod
+    def get_oauth_creds(cls):
+        store = file.Storage(cls.STORAGE_SECRET_FILE)
+        credentials = store.get()
+        return credentials, store
+
+    @classmethod
+    def refresh_oauth_creds(cls):
+        credentials, store = cls.get_oauth_creds()
+
+        flow = client.flow_from_clientsecrets(cls.CLIENT_SECRET_FILE, cls.SCOPES)
+        credentials = tools.run_flow(flow, store)
+        return True
+
 
     @staticmethod
     def sync_prep():
