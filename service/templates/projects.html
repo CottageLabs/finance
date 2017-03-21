@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+
+{% block content %}
+
+<h1>Projects</h1>
+
+<p>Cottage Labs projects are listed below.</p>
+
+    <select>
+        {% for project in projects %}
+            <option value="{{ project.url }}">{{ project.name }}</option>
+        {% endfor %}
+    </select>
+
+{% endblock %}

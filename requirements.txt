@@ -8,5 +8,7 @@
 # install octopus from submodue directory
 -e magnificent-octopus/
 
+Flask==0.10.1
+
 # now run the normal setup.py and get all the normal PyPI dependencies from there
 -e .
